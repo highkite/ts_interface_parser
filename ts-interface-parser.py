@@ -80,7 +80,7 @@ class TsToJson(Transformer):
 tsParser = Lark(r"""
     int: comment? EXPORT? INTERFACE CNAME "{" typedef* "}"
 
-    typedef : comment? CNAME optional? ":" tstype ";"?
+    typedef : comment? CNAME optional? ":" tstype (";" | ",")?
 
     optional : "?"
 
