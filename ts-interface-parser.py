@@ -3,19 +3,41 @@
 
 import os
 import sys
+import json
 import argparse
 
-from lark import Lark
+from lark import Lark, Transformer
+
+class TsToJson(Transformer):
+    def comment(self, elements):
+        return {"description" : str(elements[0])}
+
+    def tstype(self, elements):
+        return {"type" : str(elements[0])}
+
+    def typedef(self, elements):
+        if len(elements) == 3:
+            return {str(elements[1]) : {"description" : elements[0]["description"], "type" : elements[2]["type"]}}
+        else:
+            return {str(elements[0]) : {"description" : "", "type" : elements[1].get("type", "any")}}
+
+    def int(self, elements):
+        ret_val = {str(elements[1]) : {}}
+        for i in range(2, len(elements)):
+            ret_val[str(elements[1])].update(elements[i])
+
+        return ret_val
+
+
+
 tsParser = Lark(r"""
     int: INTERFACE CNAME "{" typedef* "}"
 
-    typedef : comment* CNAME ":" type ";"
+    typedef : comment* CNAME ":" tstype ";"
 
     comment: /\/\*([^\/]*)\*\//
 
-    type : "string"
-        | "number"
-        | "any"
+    tstype : CNAME
 
     INTERFACE: "interface"
 
@@ -24,7 +46,7 @@ tsParser = Lark(r"""
     %import common.NEWLINE
     %ignore WS
     %ignore NEWLINE
-    """, start='int', debug=True)
+    """, start='int')
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Typescript Interface Parser")
@@ -45,6 +67,6 @@ if __name__ == "__main__":
         print("File is empty")
         sys.exit(0)
 
-    print("PROGRAM TO PARSE: {}".format(content))
+    tree = tsParser.parse(content)
 
-    print(tsParser.parse(content).pretty())
+    print(json.dumps(TsToJson().transform(tree), indent=4, sort_keys=True))
