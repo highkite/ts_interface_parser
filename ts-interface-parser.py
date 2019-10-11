@@ -21,6 +21,8 @@ class TsToJson(Transformer):
                 ret_val.append(str(element))
             elif type(element) == lark.tree.Tree:
                 ret_val[-1] = ret_val[-1] + "[]"
+            elif type(element) == dict:
+                ret_val.append(element)
             else:
                 ret_val.append(str(element))
 
@@ -51,9 +53,26 @@ class TsToJson(Transformer):
         return {name : ret_dict}
 
     def int(self, elements):
-        ret_val = {str(elements[1]) : {}}
-        for i in range(2, len(elements)):
-            ret_val[str(elements[1])].update(elements[i])
+        elements = [i for i in elements if not str(i) == "export" and not str(i) == "interface"]
+
+        descr = None
+        name = None
+        start_index = 1
+
+        if type(elements[0]) == dict and "description" in elements[0]:
+            descr = elements[0]["description"]
+            name = str(elements[1])
+            start_index = 2
+        else:
+            name = str(elements[0])
+
+        if name is None:
+            raise Exception("Has no name")
+
+        ret_val = {name : {"description" :descr}}
+
+        for i in range(start_index, len(elements)):
+            ret_val[name].update(elements[i])
 
         return ret_val
 
@@ -61,13 +80,13 @@ class TsToJson(Transformer):
 tsParser = Lark(r"""
     int: comment? EXPORT? INTERFACE CNAME "{" typedef* "}"
 
-    typedef : comment? CNAME optional? ":" tstype ";"
+    typedef : comment? CNAME optional? ":" tstype ";"?
 
     optional : "?"
 
     comment: /\/\*((.|\s)*?)\*\//
 
-    tstype : (CNAME | ESCAPED_STRING | OTHER_ESCAPED_STRINGS) isarray? ("|" (CNAME | ESCAPED_STRING | OTHER_ESCAPED_STRINGS)isarray?)*
+    tstype : (CNAME | ESCAPED_STRING | OTHER_ESCAPED_STRINGS | "{" typedef* "}") isarray? ("|" (CNAME | ESCAPED_STRING | OTHER_ESCAPED_STRINGS | "{" typedef* "}")isarray?)*
 
     isarray : "[]"
 
@@ -105,7 +124,5 @@ if __name__ == "__main__":
         sys.exit(0)
 
     tree = tsParser.parse(content)
-
-    print(tree.pretty())
 
     print(json.dumps(TsToJson().transform(tree), indent=4, sort_keys=True))
