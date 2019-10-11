@@ -5,6 +5,7 @@ import os
 import sys
 import json
 import argparse
+import lark
 
 from lark import Lark, Transformer
 
@@ -13,13 +14,41 @@ class TsToJson(Transformer):
         return {"description" : str(elements[0])}
 
     def tstype(self, elements):
-        return {"type" : str(elements[0])}
+        ret_val = []
+
+        for element in elements:
+            if type(element) == lark.lexer.Token and element.type == "CNAME":
+                ret_val.append(str(element))
+            elif type(element) == lark.tree.Tree:
+                ret_val[-1] = ret_val[-1] + "[]"
+            else:
+                ret_val.append(str(element))
+
+
+        return {"type" : ret_val}
+
+    def optional(self, elements):
+        return {"optional" : True}
 
     def typedef(self, elements):
-        if len(elements) == 3:
-            return {str(elements[1]) : {"description" : elements[0]["description"], "type" : elements[2]["type"]}}
-        else:
-            return {str(elements[0]) : {"description" : "", "type" : elements[1].get("type", "any")}}
+        ret_dict = {}
+
+        name = None
+
+        for element in elements:
+            if type(element) == dict and "description" in element:
+                ret_dict["description"] = element["description"]
+            elif type(element) == dict and "type" in element:
+                ret_dict["type"] = element["type"]
+            elif type(element) == dict and "optional" in element:
+                ret_dict["optional"] = True
+            else:
+                name = str(element)
+
+        if name is None:
+            raise Exception("Has no name")
+
+        return {name : ret_dict}
 
     def int(self, elements):
         ret_val = {str(elements[1]) : {}}
@@ -29,21 +58,29 @@ class TsToJson(Transformer):
         return ret_val
 
 
-
 tsParser = Lark(r"""
-    int: INTERFACE CNAME "{" typedef* "}"
+    int: comment? EXPORT? INTERFACE CNAME "{" typedef* "}"
 
-    typedef : comment* CNAME ":" tstype ";"
+    typedef : comment? CNAME optional? ":" tstype ";"
 
-    comment: /\/\*([^\/]*)\*\//
+    optional : "?"
 
-    tstype : CNAME
+    comment: /\/\*((.|\s)*?)\*\//
+
+    tstype : (CNAME | ESCAPED_STRING | OTHER_ESCAPED_STRINGS) isarray? ("|" (CNAME | ESCAPED_STRING | OTHER_ESCAPED_STRINGS)isarray?)*
+
+    isarray : "[]"
 
     INTERFACE: "interface"
+    EXPORT: "export"
+
+    OTHER_ESCAPED_STRINGS : "'" _STRING_ESC_INNER "'"
 
     %import common.CNAME
     %import common.WS
     %import common.NEWLINE
+    %import common.ESCAPED_STRING
+    %import common._STRING_ESC_INNER
     %ignore WS
     %ignore NEWLINE
     """, start='int')
@@ -68,5 +105,7 @@ if __name__ == "__main__":
         sys.exit(0)
 
     tree = tsParser.parse(content)
+
+    print(tree.pretty())
 
     print(json.dumps(TsToJson().transform(tree), indent=4, sort_keys=True))
