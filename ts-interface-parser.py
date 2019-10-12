@@ -113,7 +113,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Typescript Interface Parser")
     parser.add_argument('file', metavar='file', type=str, help='The path to the file that ONLY contains the typescript interface')
     parser.add_argument('-p', '--parse_tree', action='store_true', help="Pretty print the parse tree")
-    parser.add_argument('-o', '--output', default="./out.json", help="Write the json to an output file")
+    parser.add_argument('-o', '--output', default=False, help="Write the json to an output file")
 
     args = parser.parse_args()
 
