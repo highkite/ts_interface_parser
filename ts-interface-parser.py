@@ -57,14 +57,20 @@ class TsToJson(Transformer):
 
     def int(self, elements):
         elements = [i for i in elements if not str(i) == "export" and not str(i) == "interface"]
+        print(elements)
 
         descr = None
         name = None
+        extends = None
         start_index = 1
 
         if type(elements[0]) == dict and "description" in elements[0]:
             descr = elements[0]["description"]
             name = str(elements[1])
+            start_index = 2
+        elif type(elements[1]) == lark.tree.Tree and elements[1].data == "extends":
+            name = str(elements[0])
+            extends = [str(i) for i in elements[1].children]
             start_index = 2
         else:
             name = str(elements[0])
@@ -72,7 +78,13 @@ class TsToJson(Transformer):
         if name is None:
             raise Exception("Has no name")
 
-        ret_val = {name : {"description" :descr}}
+        ret_val = {name : {}}
+
+        if descr is not None:
+            ret_val[name]["description"] = descr
+
+        if extends is not None:
+            ret_val[name]["extends"] = extends
 
         for i in range(start_index, len(elements)):
             ret_val[name].update(elements[i])
@@ -81,9 +93,11 @@ class TsToJson(Transformer):
 
 
 tsParser = Lark(r"""
-    int: comment? EXPORT? INTERFACE CNAME "{" typedef* "}"
+    int: comment? EXPORT? INTERFACE CNAME extends? "{" typedef* "}"
 
     typedef : comment? CNAME optional? ":" tstype (";" | ",")?
+
+    extends : "extends" CNAME ("," CNAME)*
 
     optional : "?"
 
