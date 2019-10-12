@@ -19,6 +19,9 @@ class TsToJson(Transformer):
         for element in elements:
             if type(element) == lark.lexer.Token and element.type == "CNAME":
                 ret_val.append(str(element))
+            elif type(element) == lark.tree.Tree and element.data == "conjunction":
+                cs = [str(child) for child in element.children]
+                ret_val.append({"conjunction" : cs})
             elif type(element) == lark.tree.Tree:
                 ret_val[-1] = ret_val[-1] + "[]"
             elif type(element) == dict:
@@ -86,9 +89,11 @@ tsParser = Lark(r"""
 
     comment: /\/\*((.|\s)*?)\*\//
 
-    tstype : (CNAME | ESCAPED_STRING | OTHER_ESCAPED_STRINGS | "{" typedef* "}") isarray? ("|" (CNAME | ESCAPED_STRING | OTHER_ESCAPED_STRINGS | "{" typedef* "}")isarray?)*
+    tstype : (CNAME | ESCAPED_STRING | OTHER_ESCAPED_STRINGS | "{" typedef* "}" | conjunction) isarray? ("|" (CNAME | ESCAPED_STRING | OTHER_ESCAPED_STRINGS | "{" typedef* "}" | conjunction )isarray?)*
 
     isarray : "[]"
+
+    conjunction : "(" CNAME ( "&" CNAME)* ")"
 
     INTERFACE: "interface"
     EXPORT: "export"
@@ -107,6 +112,7 @@ tsParser = Lark(r"""
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Typescript Interface Parser")
     parser.add_argument('file', metavar='file', type=str, help='The path to the file that ONLY contains the typescript interface')
+    parser.add_argument('-p', '--parse_tree', action='store_true', help="Pretty print the parse tree.")
 
     args = parser.parse_args()
 
@@ -124,5 +130,8 @@ if __name__ == "__main__":
         sys.exit(0)
 
     tree = tsParser.parse(content)
+
+    if args.parse_tree:
+        print(tree.pretty())
 
     print(json.dumps(TsToJson().transform(tree), indent=4, sort_keys=True))
