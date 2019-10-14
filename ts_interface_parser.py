@@ -12,7 +12,7 @@ from lark import Lark, Transformer
 
 class TsToJson(Transformer):
     def comment(self, elements):
-        return {"description": str(elements[0])}
+        return {"description": str("\n".join([x.strip() for x in elements[0].replace("*", "").replace("/", "").split("\n") if x != ""]))}
 
     def tstype(self, elements):
         ret_val = []
