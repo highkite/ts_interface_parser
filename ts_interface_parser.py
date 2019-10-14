@@ -9,9 +9,10 @@ import lark
 
 from lark import Lark, Transformer
 
+
 class TsToJson(Transformer):
     def comment(self, elements):
-        return {"description" : str(elements[0])}
+        return {"description": str(elements[0])}
 
     def tstype(self, elements):
         ret_val = []
@@ -21,7 +22,7 @@ class TsToJson(Transformer):
                 ret_val.append(str(element))
             elif type(element) == lark.tree.Tree and element.data == "conjunction":
                 cs = [str(child) for child in element.children]
-                ret_val.append({"conjunction" : cs})
+                ret_val.append({"conjunction": cs})
             elif type(element) == lark.tree.Tree:
                 ret_val[-1] = ret_val[-1] + "[]"
             elif type(element) == dict:
@@ -29,11 +30,10 @@ class TsToJson(Transformer):
             else:
                 ret_val.append(str(element))
 
-
-        return {"type" : ret_val}
+        return {"type": ret_val}
 
     def optional(self, elements):
-        return {"optional" : True}
+        return {"optional": True}
 
     def typedef(self, elements):
         ret_dict = {}
@@ -53,11 +53,10 @@ class TsToJson(Transformer):
         if name is None:
             raise Exception("Has no name")
 
-        return {name : ret_dict}
+        return {name: ret_dict}
 
     def int(self, elements):
         elements = [i for i in elements if not str(i) == "export" and not str(i) == "interface"]
-        print(elements)
 
         descr = None
         name = None
@@ -78,7 +77,7 @@ class TsToJson(Transformer):
         if name is None:
             raise Exception("Has no name")
 
-        ret_val = {name : {}}
+        ret_val = {name: {}}
 
         if descr is not None:
             ret_val[name]["description"] = descr
@@ -123,6 +122,16 @@ tsParser = Lark(r"""
     %ignore NEWLINE
     """, start='int')
 
+
+def transform(interface_data, debug=False):
+    tree = tsParser.parse(interface_data)
+
+    if debug:
+        print(tree.pretty())
+
+    return json.dumps(TsToJson().transform(tree), indent=4, sort_keys=True)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Typescript Interface Parser")
     parser.add_argument('file', metavar='file', type=str, help='The path to the file that ONLY contains the typescript interface')
@@ -144,12 +153,7 @@ if __name__ == "__main__":
         print("File is empty")
         sys.exit(0)
 
-    tree = tsParser.parse(content)
-
-    if args.parse_tree:
-        print(tree.pretty())
-
-    formatted_output = json.dumps(TsToJson().transform(tree), indent=4, sort_keys=True)
+    formatted_output = transform(content, args.parse_tree)
 
     if not args.output:
         print(formatted_output)
