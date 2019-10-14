@@ -58,7 +58,23 @@ class TestParser(unittest.TestCase):
 				readonly y: number;
 			}
         """
-        print(transform(idata))
+        target = """{
+        "Point": {
+            "x": {
+                "readonly": true,
+                "type": [
+                    "number"
+                ]
+            },
+            "y": {
+                "readonly": true,
+                "type": [
+                    "number"
+                ]
+            }
+        }
+}"""
+        self.assertEqualJSON(transform(idata), target)
 
     def test_const_properties(self):
         idata = """
@@ -67,7 +83,23 @@ class TestParser(unittest.TestCase):
 				const y: number;
 			}
         """
-        print(transform(idata))
+        target = """{
+        "Point": {
+            "x": {
+                "constant": true,
+                "type": [
+                    "number"
+                ]
+            },
+            "y": {
+                "constant": true,
+                "type": [
+                    "number"
+                ]
+            }
+        }
+}"""
+        self.assertEqualJSON(transform(idata), target)
 
     def test_string_index_signature(self):
         idata = """
