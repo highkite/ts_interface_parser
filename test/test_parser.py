@@ -109,43 +109,101 @@ class TestParser(unittest.TestCase):
 				[propName: string]: any;
 			}
         """
-        print(transform(idata))
-
-    def test_function_types(self):
-        idata = """
-			interface SearchFunc{
-				(source: string, subString: string): boolean;
-			}
-        """
-        print(transform(idata))
-
-    def test_named_function_types(self):
-        idata = """
-			interface ClockInterface {
-				currentTime: Date;
-				setTime(d: Date): void;
-			}
-        """
-        print(transform(idata))
+        target = """{
+         "SquareConfig": {
+            "color": {
+                "optional": true,
+                "type": [
+                    "string"
+                ]
+            },
+            "propName": {
+                "indexed": {
+                    "type": [
+                        "string"
+                    ]
+                },
+                "type": [
+                    "any"
+                ]
+            },
+            "width": {
+                "optional": true,
+                "type": [
+                    "number"
+                ]
+            }
+        }
+}"""
+        self.assertEqualJSON(transform(idata), target)
 
     def test_indexable_types(self):
         idata = """
 			interface NotOkay {
-				[x: number]: Animal;
+				[y: number]: Animal;
 				[x: string]: Dog;
 			}
         """
-        print(transform(idata))
+        target = """{
+    "NotOkay": {
+        "x": {
+            "indexed": {
+                "type": [
+                    "string"
+                ]
+            },
+            "type": [
+                "Dog"
+            ]
+        },
+        "y": {
+            "indexed": {
+                "type": [
+                    "number"
+                ]
+            },
+            "type": [
+                "Animal"
+            ]
+        }
+    }
+}"""
+        self.assertEqualJSON(transform(idata), target)
 
     def test_indexable_different_types(self):
         idata = """
 			interface NumberOrStringDictionary {
 				[index: string]: number | string;
-				length: number;    // ok, length is a number
-				name: string;      // ok, name is a string
+				length: number;
+				name: string;
             }
         """
-        print(transform(idata))
+        target = """{
+         "NumberOrStringDictionary": {
+            "index": {
+                "indexed": {
+                    "type": [
+                        "string"
+                    ]
+                },
+                "type": [
+                    "number",
+                    "string"
+                ]
+            },
+            "length": {
+                "type": [
+                    "number"
+                ]
+            },
+            "name": {
+                "type": [
+                    "string"
+                ]
+            }
+        }
+}"""
+        self.assertEqualJSON(transform(idata), target)
 
     def test_indexable_readonly_types(self):
         idata = """
@@ -153,7 +211,22 @@ class TestParser(unittest.TestCase):
                 readonly [index: number]: string;
 			}
         """
-        print(transform(idata))
+        target = """{
+        "ReadonlyStringArray": {
+            "index": {
+                "indexed": {
+                    "type": [
+                        "number"
+                    ]
+                },
+                "readonly": true,
+                "type": [
+                    "string"
+                ]
+            }
+        }
+}"""
+        self.assertEqualJSON(transform(idata), target)
 
     def test_extensions(self):
         idata = """
@@ -195,3 +268,30 @@ class TestParser(unittest.TestCase):
 	}
 }"""
         self.assertEqualJSON(transform(idata), target)
+
+    def test_inline_comment(self):
+        idata = """
+			interface NumberOrStringDictionary {
+				[index: string]: number | string;
+				length: number;    // ok, length is a number
+				name: string;      // ok, name is a string
+            }
+        """
+        print(transform(idata))
+
+    def test_function_types(self):
+        idata = """
+			interface SearchFunc{
+				(source: string, subString: string): boolean;
+			}
+        """
+        print(transform(idata))
+
+    def test_named_function_types(self):
+        idata = """
+			interface ClockInterface {
+				currentTime: Date;
+				setTime(d: Date): void;
+			}
+        """
+        print(transform(idata))

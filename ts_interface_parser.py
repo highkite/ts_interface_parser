@@ -35,6 +35,12 @@ class TsToJson(Transformer):
     def optional(self, elements):
         return {"optional": True}
 
+    def identifier(self, elements):
+        if len(elements) == 1:
+            return str(elements[0])
+
+        return {"indexed": True, "name": str(elements[0]), "type": elements[1]}
+
     def typedef(self, elements):
         ret_dict = {}
 
@@ -43,6 +49,9 @@ class TsToJson(Transformer):
         for element in elements:
             if type(element) == dict and "description" in element:
                 ret_dict["description"] = element["description"]
+            elif type(element) == dict and "indexed" in element:
+                ret_dict["indexed"] = element["type"]
+                name = element["name"]
             elif type(element) == dict and "type" in element:
                 ret_dict["type"] = element["type"]
             elif type(element) == dict and "optional" in element:
@@ -51,7 +60,7 @@ class TsToJson(Transformer):
                 ret_dict["constant"] = True
             elif type(element) == lark.tree.Tree and element.data == "readonly":
                 ret_dict["readonly"] = True
-            else:
+            elif type(element) == str:
                 name = str(element)
 
         if name is None:
@@ -98,7 +107,10 @@ class TsToJson(Transformer):
 tsParser = Lark(r"""
     int: comment? EXPORT? INTERFACE CNAME extends? "{" typedef* "}"
 
-    typedef : comment? prefix? CNAME optional? ":" tstype (";" | ",")?
+    typedef : comment? prefix? identifier optional? ":" tstype (";" | ",")?
+
+    identifier : CNAME
+            | "[" CNAME ":" tstype "]"
 
     prefix : "const" -> const
             | "readonly" -> readonly
