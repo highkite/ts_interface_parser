@@ -35,8 +35,22 @@ class TsToJson(Transformer):
     def optional(self, elements):
         return {"optional": True}
 
+    def function(self, elements):
+        params = {}
+
+        i = 0
+        while i < len(elements):
+            params[str(elements[i])] = elements[i + 1]
+            i += 2
+
+        return {"params": params}
+
     def identifier(self, elements):
-        if len(elements) == 1:
+        if len(elements) > 0 and type(elements[0]) == dict and "params" in elements[0]:
+            return {"name": "anonymous_function", "params": elements[0]["params"]}
+        if len(elements) > 1 and type(elements[1]) == dict and "params" in elements[1]:
+            return {"name": str(elements[0]), "params": elements[1]["params"]}
+        elif len(elements) == 1:
             return str(elements[0])
 
         return {"indexed": True, "name": str(elements[0]), "type": elements[1]}
@@ -49,6 +63,10 @@ class TsToJson(Transformer):
         for element in elements:
             if type(element) == dict and "description" in element:
                 ret_dict["description"] = element["description"]
+            elif type(element) == dict and "params" in element:
+                ret_dict["function"] = True
+                ret_dict["parameters"] = element["params"]
+                name = element["name"]
             elif type(element) == dict and "indexed" in element:
                 ret_dict["indexed"] = element["type"]
                 name = element["name"]
@@ -60,6 +78,8 @@ class TsToJson(Transformer):
                 ret_dict["constant"] = True
             elif type(element) == lark.tree.Tree and element.data == "readonly":
                 ret_dict["readonly"] = True
+            elif type(element) == lark.tree.Tree and element.data == "inline_comment":
+                ret_dict["description"] = str(element.children[0])
             elif type(element) == str:
                 name = str(element)
 
@@ -107,10 +127,13 @@ class TsToJson(Transformer):
 tsParser = Lark(r"""
     int: comment? EXPORT? INTERFACE CNAME extends? "{" typedef* "}"
 
-    typedef : comment? prefix? identifier optional? ":" tstype (";" | ",")?
+    typedef : comment? prefix? identifier optional? ":" tstype (";" | ",")? inline_comment?
 
-    identifier : CNAME
+    identifier : CNAME function?
             | "[" CNAME ":" tstype "]"
+            | function
+
+    function : "(" CNAME ":" tstype ("," CNAME ":" tstype)* ")"
 
     prefix : "const" -> const
             | "readonly" -> readonly
@@ -120,6 +143,8 @@ tsParser = Lark(r"""
     optional : "?"
 
     comment: /\/\*((.|\s)*?)\*\//
+
+    inline_comment: /\/\/.*\n/
 
     tstype : (CNAME | ESCAPED_STRING | OTHER_ESCAPED_STRINGS | "{" typedef* "}" | conjunction) isarray? ("|" (CNAME | ESCAPED_STRING | OTHER_ESCAPED_STRINGS | "{" typedef* "}" | conjunction )isarray?)*
 

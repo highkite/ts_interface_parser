@@ -269,23 +269,35 @@ class TestParser(unittest.TestCase):
 }"""
         self.assertEqualJSON(transform(idata), target)
 
-    def test_inline_comment(self):
-        idata = """
-			interface NumberOrStringDictionary {
-				[index: string]: number | string;
-				length: number;    // ok, length is a number
-				name: string;      // ok, name is a string
-            }
-        """
-        print(transform(idata))
-
     def test_function_types(self):
         idata = """
 			interface SearchFunc{
 				(source: string, subString: string): boolean;
 			}
         """
-        print(transform(idata))
+        target = """{
+        "SearchFunc": {
+        "anonymous_function": {
+            "function": true,
+            "parameters": {
+                "source": {
+                    "type": [
+                        "string"
+                    ]
+                },
+                "subString": {
+                    "type": [
+                        "string"
+                    ]
+                }
+            },
+            "type": [
+                "boolean"
+            ]
+        }
+    }
+}"""
+        self.assertEqualJSON(transform(idata), target)
 
     def test_named_function_types(self):
         idata = """
@@ -294,4 +306,63 @@ class TestParser(unittest.TestCase):
 				setTime(d: Date): void;
 			}
         """
-        print(transform(idata))
+        target = """{
+        "ClockInterface": {
+            "currentTime": {
+                "type": [
+                    "Date"
+                ]
+            },
+            "setTime": {
+                "function": true,
+                "parameters": {
+                    "d": {
+                        "type": [
+                            "Date"
+                        ]
+                    }
+                },
+                "type": [
+                    "void"
+                ]
+            }
+        }
+}"""
+        self.assertEqualJSON(transform(idata), target)
+
+    def test_inline_comment(self):
+        idata = """
+			interface NumberOrStringDictionary {
+				[index: string]: number | string;
+				length: number;    // ok, length is a number
+				name: string;      // ok, name is a string
+            }
+        """
+        target = """{
+            "NumberOrStringDictionary": {
+            "index": {
+                "indexed": {
+                    "type": [
+                        "string"
+                    ]
+                },
+                "type": [
+                    "number",
+                    "string"
+                ]
+            },
+            "length": {
+                "description": "// ok, length is a number\\n",
+                "type": [
+                    "number"
+                ]
+            },
+            "name": {
+                "description": "// ok, name is a string\\n",
+                "type": [
+                    "string"
+                ]
+            }
+        }
+}"""
+        self.assertEqualJSON(transform(idata), target)
