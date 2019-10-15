@@ -1,2 +1,5 @@
 *.pyc
 *.ts
+build
+dist
+ts_interface_parser.egg-info

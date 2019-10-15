@@ -11,7 +11,7 @@ setuptools.setup(
     description="The typescript interface parser parses interfaces defined in typescript and outputs a JSON object describing the interfaces.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/pypa/sampleproject",
+    url="https://github.com/highkite/ts_interface_parser",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",

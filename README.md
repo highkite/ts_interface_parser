@@ -30,6 +30,10 @@ I needed to communicate with a server via RPC from a Python client, but all vali
 
 ### <a name="Pypi"></a>Pypi
 
+```
+pip install ts-interface-parser
+```
+
 ### <a name="ManualInstallation"></a>Manual installation
 
 Clone the repo and install the requirements with
