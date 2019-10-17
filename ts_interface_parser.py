@@ -16,6 +16,7 @@ class TsToJson(Transformer):
 
     def tstype(self, elements):
         ret_val = []
+        ret_dict = {}
 
         for element in elements:
             if type(element) == lark.lexer.Token and element.type == "CNAME":
@@ -26,11 +27,14 @@ class TsToJson(Transformer):
             elif type(element) == lark.tree.Tree:
                 ret_val[-1] = ret_val[-1] + "[]"
             elif type(element) == dict:
-                ret_val.append(element)
+                ret_dict.update(element)
             else:
                 ret_val.append(str(element))
 
-        return {"type": ret_val}
+        if len(ret_val) == 0:
+            return {"type": ret_dict}
+        else:
+            return {"type": ret_val}
 
     def optional(self, elements):
         return {"optional": True}
