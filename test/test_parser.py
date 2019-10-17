@@ -366,3 +366,25 @@ class TestParser(unittest.TestCase):
         }
 }"""
         self.assertEqualJSON(transform(idata), target)
+
+    def test_nested_types(self):
+        idata = """
+			interface NumberOrStringDictionary {
+                name  : { value : string, value2 : number};
+            }
+        """
+        target = """{
+            "NumberOrStringDictionary": {
+                "name" : {
+                    "type" : {
+                        "value" : {
+                            "type" : [ "string"]
+                        },
+                        "value2" : {
+                            "type" : ["number"]
+                        }
+                    }
+                }
+        }
+}"""
+        self.assertEqualJSON(transform(idata), target)
